@@ -8,3 +8,7 @@ Engine to do:
     2. Depth scalling
     3. Projection
     4. Picture scalling and fixing 
+
+Progess day 1:
+    - found translation for moving CS by vector 
+    - looking for rotation deriviation
