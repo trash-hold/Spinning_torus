@@ -12,3 +12,11 @@ Engine to do:
 Progess day 1:
     - found translation for moving CS by vector 
     - looking for rotation deriviation
+
+Progess day 2:
+    - implemented transformation method 
+
+Progress day 3:
+    - reading about how to render object 
+    Source: https://www.scratchapixel.com/index.php?redirect
+    
