@@ -19,4 +19,7 @@ Progess day 2:
 Progress day 3:
     - reading about how to render object 
     Source: https://www.scratchapixel.com/index.php?redirect
-    
+
+Proggess day 4:
+    - worked on class structure
+    - started rasterization methods
