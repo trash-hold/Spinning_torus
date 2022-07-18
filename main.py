@@ -68,6 +68,10 @@ class Renderer:
 def render(matrix, scr_size, frame = __frame_size__):
     pass
 
+class Window:
+    def __init__(self, w_size, obj):
+        pass
+
 if __name__ == "__main__":
     mat = np.random.randint(50, size = (3, 5))
     print("The random matrix:")
@@ -76,6 +80,7 @@ if __name__ == "__main__":
     rot = np.array([0, 0, 0])
     trans = np.column_stack((par, rot))
     cam = Camera(mat, trans)
+
     #print(cam.__obj__)
     w_size = np.array([[50], [50], [1]])
     cam.rasterization(w_size)
