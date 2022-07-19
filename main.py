@@ -45,7 +45,8 @@ class Camera:
         #prep for resterization
         ras_v = np.array([[__frame_size__/2], [-__frame_size__/2], [0]])
         #reduction by z-depth 
-        matrix = self.__obj__
+        #Not sure if should add +ras_v in 49 or in return line 
+        matrix = np.delete(self.__obj__, np.where(self.__obj__.T[:,2] <= 0)[0], axis = 1)
         vec_z = matrix[2]
         matrix[0] = matrix[0]/vec_z
         matrix[1] = matrix[1]/vec_z
@@ -53,10 +54,20 @@ class Camera:
         return matrix + ras_v
 
     def rasterization(self, w_size):
+        """
+        w_size = vector defining window size 
+        """
+        #Transforming into ndc space and then into rasterized space
         ndc_v = np.array([__frame_size__, -__frame_size__ , 1])
-        ras = ((self.projection().T)/ndc_v).T * w_size
+        ras = np.rint(((self.projection().T)/ndc_v).T * w_size)
         print("ras:")
         print(ras)
+        #Cutting off all points not visible to camera 
+        ras = ras.T
+        ras_reduced = np.delete(ras, np.where(
+            (ras[:, 0] < 0) | (ras[:, 0] >= w_size[0]) | (ras[:, 1] < 0) | (ras[:, 1] >= w_size[1]))[0], axis = 0)
+        print("ras reducted:")
+        print(ras_reduced)
 
     def update(self, trans_mat, obj = None):
         pass
@@ -73,7 +84,8 @@ class Window:
         pass
 
 if __name__ == "__main__":
-    mat = np.random.randint(50, size = (3, 5))
+    #mat = np.random.randint(100, size = (3, 5))
+    mat = np.array([[100, 50],[100, 3],[1, -5]])
     print("The random matrix:")
     print(mat)
     par = np.array([[0], [0], [0]])
