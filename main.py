@@ -4,9 +4,9 @@ import math as m
 __frame_size__ = 100 
 
 class Camera:
-    def __init__(self, objects, trans_mat):
+    def __init__(self, objects, w_size = __frame_size__):
         self.__obj__ = objects
-        self.__obj__ = self.camera_cs(trans_mat)
+        self.__wsize__ = w_size
     
     def rotate(self, obj, rot):
         #rot    - list/vector containing three angles (in radians) descibing rotation (OX, OY, OZ)
@@ -23,8 +23,10 @@ class Camera:
                         [0, m.cos(rot[2]), m.sin(rot[2])],
                         [0, -m.sin(rot[2]), m.cos(rot[2])]])
     
-        rot_mat = np.dot(rot_psi, np.dot(rot_theta, rot_phi))
-    
+        #rot_mat = np.dot(rot_psi, np.dot(rot_theta, rot_phi))
+        rot_mat = np.dot(rot_theta, rot_phi)
+        print(rot_mat)
+
         return np.dot(rot_mat, obj)
     
     def camera_cs(self, trans_mat):
@@ -44,13 +46,12 @@ class Camera:
     def projection(self):
         #prep for resterization
         ras_v = np.array([[__frame_size__/2], [-__frame_size__/2], [0]])
-        #reduction by z-depth 
+        #reduction by z-depth + discarding points that won't be visible due to their depth 
         #Not sure if should add +ras_v in 49 or in return line 
         matrix = np.delete(self.__obj__, np.where(self.__obj__.T[:,2] <= 0)[0], axis = 1)
         vec_z = matrix[2]
         matrix[0] = matrix[0]/vec_z
         matrix[1] = matrix[1]/vec_z
-        #NEED TO DO STH ABOUT CASES WHEN z = 0
         return matrix + ras_v
 
     def rasterization(self, w_size):
@@ -60,41 +61,96 @@ class Camera:
         #Transforming into ndc space and then into rasterized space
         ndc_v = np.array([__frame_size__, -__frame_size__ , 1])
         ras = np.rint(((self.projection().T)/ndc_v).T * w_size)
-        print("ras:")
-        print(ras)
         #Cutting off all points not visible to camera 
         ras = ras.T
         ras_reduced = np.delete(ras, np.where(
             (ras[:, 0] < 0) | (ras[:, 0] >= w_size[0]) | (ras[:, 1] < 0) | (ras[:, 1] >= w_size[1]))[0], axis = 0)
-        print("ras reducted:")
-        print(ras_reduced)
+        return ras_reduced
 
-    def update(self, trans_mat, obj = None):
-        pass
+    def update_cam(self, trans_mat, obj = None, w_size = None):
+        if obj is not None: self.__obj__ = obj
+        if w_size is None: w_size = self.__wsize__
+
+        self.__obj__ = self.camera_cs(trans_mat)
+        self.__obj__ = self.rasterization(w_size)
 
 class Renderer:
-    def __init__(self, obj):
+    def __init__(self, obj, w_size):
         self.__render__ = obj
+        self.__size__ = w_size
+    
+    def draw(self, shape, cp, dim):
+        #cp - center point
+        obj = None
+        if shape == "circle" or "c":
+            for x in range(-dim[0], dim[0]):
+                if obj is None:
+                    obj = np.array([[x, m.sqrt(dim[0]*dim[0] - x*x), dim[1]], [-x, m.sqrt(dim[0]*dim[0] - x*x), dim[1]]])
+                else:
+                    new_obj = np.array([[x, m.sqrt(dim[0]*dim[0] - x*x), dim[1]], [x, -m.sqrt(dim[0]*dim[0] - x*x), dim[1]]])
+                    obj = np.vstack([obj, new_obj])
+        #print(self.__render__)
+        self.__render__ = np.vstack([self.__render__, obj])
 
-def render(matrix, scr_size, frame = __frame_size__):
-    pass
+    def render(self):
+        # # $ & @ %
+        max_z = np.amax(self.__render__, axis = 0)[2]
+        buffer_size = max_z // 5 + 1
+        sym = {0: "@", 1: "@", 2: "#", 3: "&", 4: "%", 5: "$"}
+
+        #creating map
+        mapping = {(x, y): [] for x in range(int(self.__size__[0])) for y in range(int(self.__size__[0]))}
+        for i in self.__render__:
+            mapping[(i[0], i[1])].append(i[2])
+        
+        #rewritting map into symbols
+        for i in mapping:
+            if mapping[i] == []:
+                mapping[i] = " "
+            else:
+                z = mapping[i]
+                mapping[i] = sym[sorted(z)[0]//buffer_size]
+        
+        print(" " + "__" * int(self.__size__[0]))
+        for j in range(int(self.__size__[1])):
+            x = "|"
+            for i in range(int(self.__size__[0])):
+                x = x + " " + mapping[i, j]
+            print(x + "|")
+        print(" " + "--" * int(self.__size__[0]))
+    
+    def update_renderer(self, camera, obj = None, trans_mat = np.array([[0, 0], [0, 0], [0, 0]]), w_size = None):
+        if w_size is None: w_size = self.__size__
+        if obj is None: obj = self.__render__.T
+        camera.update_cam(trans_mat, obj, w_size)
+        self.__render__ = camera.__obj__
+        self.render()
+
 
 class Window:
     def __init__(self, w_size, obj):
         pass
 
 if __name__ == "__main__":
-    #mat = np.random.randint(100, size = (3, 5))
-    mat = np.array([[100, 50],[100, 3],[1, -5]])
-    print("The random matrix:")
-    print(mat)
-    par = np.array([[0], [0], [0]])
-    rot = np.array([0, 0, 0])
+    # PROBLEMS WITH ZERO ARRAY IN RENDER()
+
+    #mat = np.random.randint(10, size = (3, 20))
+    #mat = np.array([[4, 4, 4, 4],[4, 4, 4, 4],[3, 8, 7, 1]])
+    mat = np.array([[0],[0],[1]])
+    #print("The random matrix:")
+    #print(mat)
+    t = np.zeros(shape = (2, 3))
+    par = np.array([[-10], [0], [-1]])
+    rot = np.array([m.radians(0), m.radians(4), m.radians(0)])
     trans = np.column_stack((par, rot))
-    cam = Camera(mat, trans)
+    cam = Camera(mat, t)
 
     #print(cam.__obj__)
-    w_size = np.array([[50], [50], [1]])
+    w_size = np.array([[60], [60], [1]])
     cam.rasterization(w_size)
+    
+    red = Renderer(mat.T, w_size)
+    red.draw("circle", par, [50, 4])
+    red.update_renderer(cam, None, trans)
     #print(100*"# ")
     #for i in range(100): print("#")
